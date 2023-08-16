@@ -5,7 +5,7 @@ from streamlit_extras.app_logo import add_logo
 
 # --- Define page configuration ---
 st.set_page_config(
-    page_title='PT Wilian - FFB Procurement',
+    page_title='Melangking - FFB Procurement',
     page_icon='✍',
     initial_sidebar_state='auto',   #(collapsed, auto, expanded)
     layout='wide'
@@ -47,10 +47,10 @@ def add_logo():
         """
         <style>
             [data-testid="stSidebarNav"] {
-                background-image: url('https://lmquartobistorage.blob.core.windows.net/pt-wilian-perkasa/PTWP_Logo.png');
+                background-image: url('https://lmquartobistorage.blob.core.windows.net/melangking/mopp.png');
                 background-repeat: no-repeat;
                 padding-top: 10px;
-                background-position: 20px 25px;
+                background-position: 20px 1px;
             }
             # [data-testid="stSidebarNav"]::before {
             #     content: "FFB Procurement Application";
@@ -66,26 +66,6 @@ def add_logo():
     )
 
 add_logo()
-
-# # --- Form title ---
-# st.sidebar.title('FFB Procurement')
-
-
-
-# # Adding additional controls in the sidebar.
-# # Using object notation
-# add_selectbox = st.sidebar.selectbox(
-#     'How would you like to contacted?',
-#     ('Email', 'Home phone', 'Mobile phone')
-# )
-
-# # Using 'with' notation
-# with st.sidebar:
-#     add_radio = st.radio(
-#         'Choose a shipping method',
-#         ('Standard (5-15 days)', 'Express (2-5 days)')
-#     )
-
 
 
 # --- Hide the Streamlit Menu Button and Trade Marks ---

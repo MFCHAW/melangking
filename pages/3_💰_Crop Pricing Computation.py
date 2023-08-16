@@ -11,16 +11,13 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 import time
 
 # -- Variables and Session States Initialization --
-if 'pricing_status' not in st.session_state:
-    st.session_state['pricing_status'] = ''
+if 'patch_status' not in st.session_state:
+    st.session_state['patch_status'] = ''
     
-if 'pricing_message' not in st.session_state:
-    st.session_state['pricing_message'] = ''
+if 'patch_message' not in st.session_state:
+    st.session_state['patch_message'] = ''
 
-if 'pricing_error_message' not in st.session_state:
-    st.session_state['pricing_error_message'] = pd.DataFrame()
-    
-url = 'https://prod-37.southeastasia.logic.azure.com:443/workflows/8d3ee9a9b3bc46868eca0b23032e7c13/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=9TAwgb1TlIaN5SBi40BSN6S87LDXZSxY5Iniz1N-ND8'
+url = 'https://prod-27.southeastasia.logic.azure.com:443/workflows/0c80d99c63e64c27925ded0ea3f8bbaf/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=vLWcNfx7Bp_OBclccXV-dWFzDu_b5Waa1w-nkmw9m4Q'
 
 
 
@@ -67,7 +64,7 @@ def add_logo():
         """
         <style>
             [data-testid="stSidebarNav"] {
-                background-image: url('https://lmquartobistorage.blob.core.windows.net/pt-wilian-perkasa/PTWP_Logo.png');
+                background-image: url('https://lmquartobistorage.blob.core.windows.net/melangking/mopp.png');
                 background-repeat: no-repeat;
                 padding-top: 10px;
                 background-position: 20px 25px;
@@ -106,133 +103,58 @@ statusMsgSection = st.container()
 errorMsgSection = st.container()
 retrySection = st.container()
 
-# -- Get Operating Unit Lookup Records --
-def get_OUKey(ou):
-    if ou == 'LIBO SAWIT PERKASA PALM OIL MILL':
-        return 6
-    elif ou == 'SEMUNAI SAWIT PERKASA PALM OIL MILL 1':
-        return 8
-    elif ou == 'SEMUNAI SAWIT PERKASA PALM OIL MILL 2':
-        return 9
-
-# -- Get Excel Template: 'Daily Pricing' Lookup Records --
-def get_PriceExcelName(ou):
-    if ou == 'LIBO SAWIT PERKASA PALM OIL MILL':
-        return 'LIBO_FFB Daily Pricing.xlsx'
-    elif ou == 'SEMUNAI SAWIT PERKASA PALM OIL MILL 1':
-        return 'SSP1_FFB Daily Pricing.xlsx'
-    elif ou == 'SEMUNAI SAWIT PERKASA PALM OIL MILL 2':
-        return 'SSP2_FFB Daily Pricing.xlsx'
-
-# -- Get Batch No String --
-def get_BatchSuppSheetName(batch):
-    return 'Batch' + str(batch)
-
-# -- Get Excel Template: 'Payment' Lookup Records --
-def get_BatchExcelName(ou):
-    if ou == 'LIBO SAWIT PERKASA PALM OIL MILL':
-        return 'LIBO_FFB Payment.xlsx'
-    elif ou == 'SEMUNAI SAWIT PERKASA PALM OIL MILL 1':
-        return 'SSP1_FFB Payment.xlsx'
-    elif ou == 'SEMUNAI SAWIT PERKASA PALM OIL MILL 2':
-        return 'SSP2_FFB Payment.xlsx'
-
-
-
 # -- Trigger Azure Logic App to compute the crop payment pricing --
-async def processPricing(ou, batch):
+async def patchRemarks(year, month):
     session_timeout = aiohttp.ClientTimeout(total=60 * 60 * 24)
     async with aiohttp.ClientSession(timeout=session_timeout) as session:
         async with session.post(url, data=json.dumps({
-            "OUKey": get_OUKey(ou),
-            "Batch": batch,
-            "BatchSuppSheetName": get_BatchSuppSheetName(batch),
-            "PriceExcelName": get_PriceExcelName(ou),
-            "BatchExcelName": get_BatchExcelName(ou),
-            "UserKey": st.session_state['UserKey']
+            "Year": year,
+            "Month": month
         }, sort_keys=True), headers={'content-type': 'application/json'}) as response:
             data = await response.json()
             print(data)
 
-            # -- Check the ErrorList table got records. --
-            # -- If got record, system show error and return the error records --
-            conn = qconnection()
-            cursor = conn.cursor()
-            
-            try:
-                cursor.execute(f"""Select OUKey, FPSBatchCode, ErrorMsg as [Error Message] 
-                                   from FPS_YYT_BatchErrorList 
-                                   Where OUKey = {get_OUKey(ou)} and FPSBatchCode = '{batch}' and 
-                                         ProcessType in ('EXCEL', 'PROFORMA')""")
-                
-                result = []
-                columns = [column[0] for column in cursor.description]
-                for row in cursor.fetchall():
-                    result.append(dict(zip(columns, row)))
-
-                df = pd.DataFrame(result)
-                st.session_state['pricing_error_message'] = df
-                # print(df)
-                
-            except pymssql.Error as e:
-                st.write(f'Error executing query: {e}')
-            finally:
-                if cursor:
-                    cursor.close()
-                if conn:
-                    conn.close()
-            
-            if response.status == 200 and data['Status'] == 'Succeeded' and len(result) == 0:
-                st.session_state['pricing_status'] = 'Succeeded'
-                st.session_state['pricing_message'] = 'Pricing computation done!'
+            if response.status == 200 and data['Status'] == 'Succeeded':
+                st.session_state['patch_status'] = 'Succeeded'
+                st.session_state['patch_message'] = 'Payment voucher Remarks already being patched!'
             else:
-                st.session_state['pricing_status'] = 'Failed'
-                st.session_state['pricing_message'] = 'Error occured during pricing computation!'
+                st.session_state['patch_status'] = 'Failed'
+                st.session_state['patch_message'] = 'Error occured during payment voucher remark patching!'
 
             
-def computePrice(ou, batch):
+def callPatchRemarks(year, month):
     
-    st.session_state['pricing_status'] = 'Process'
-    st.session_state['pricing_message'] = 'Processing...'
+    st.session_state['patch_status'] = 'Process'
+    st.session_state['patch_message'] = 'Processing...'
     
     hide_MainPage()
     show_StatusMsg()
-    hide_ErrorMsg() 
     
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(processPricing(ou, batch)) 
-    
-    # time.sleep(3) 
-    # st.session_state['pricing_status'] = 'Succeeded'
-    # st.session_state['pricing_message'] = 'Pricing computation done!'
+    loop.run_until_complete(patchRemarks(year, month)) 
     
     st.markdown('#')
 
 # -- UI Session --
 def show_MainPage():
     with placeholder.container():
-    # with mainSection:
-        if st.session_state['pricing_status'] == '':
-            ou = st.selectbox(
-                'Mill: ',
-                ('LIBO SAWIT PERKASA PALM OIL MILL',
-                    'SEMUNAI SAWIT PERKASA PALM OIL MILL 1',
-                    'SEMUNAI SAWIT PERKASA PALM OIL MILL 2')
-                )
+        if st.session_state['patch_status'] == '':
 
-            batch = st.number_input('Batch: ', 1)
+            year = st.number_input('Year: ', 2023)
+            
+            month = st.number_input('Month: ', 8)
 
             st.markdown('#')
 
-            st.button('Process',
-                    on_click=computePrice,
-                    args=(ou, batch),
-                    help='Click to start process the pricing.')
+            st.button('Patch',
+                    on_click=callPatchRemarks,
+                    args=(year, month),
+                    help='Click to start patch the payment voucher remarks.')
 
             st.markdown('#')
 
-            st.write('Please fill in all the information and click "Process" button.')
+            st.write('Please fill in all the information and click "Patch" button.')
         
 
 def hide_MainPage():
@@ -242,39 +164,16 @@ def show_StatusMsg():
     with statusMsgSection:
         statusMsg.empty()
         
-        if st.session_state['pricing_status'] == 'Process':
-            statusMsg.info(st.session_state['pricing_message'])
-        elif st.session_state['pricing_status'] == 'Succeeded':
-            statusMsg.success(st.session_state['pricing_message'])
-        elif st.session_state['pricing_status'] == 'Failed':
-            statusMsg.error(st.session_state['pricing_message'])
+        if st.session_state['patch_status'] == 'Process':
+            statusMsg.info(st.session_state['patch_message'])
+        elif st.session_state['patch_status'] == 'Succeeded':
+            statusMsg.success(st.session_state['patch_message'])
+        elif st.session_state['patch_status'] == 'Failed':
+            statusMsg.error(st.session_state['patch_message'])
         
-def show_ErrorMsg():
-    with errorMsgSection:
-        if st.session_state['pricing_error_message'].any().any():
-            # Configure grid options using GridOptionsBuilder
-            builder = GridOptionsBuilder.from_dataframe(st.session_state['pricing_error_message'])
-            builder.configure_pagination(enabled=False)
-            builder.configure_selection(selection_mode='single', use_checkbox=False)
-            grid_options = builder.build()
-
-            # Display AgGrid
-            st.write("Error Details: ")
-            st.table(st.session_state['pricing_error_message'])
-            # ag = AgGrid(st.session_state['pricing_error_message'],
-            #         gridOptions=grid_options,
-            #         editable=False,
-            #         allow_unsafe_jscode=True,
-            #         theme='balham',
-            #         height=500,
-            #         fit_columns_on_grid_load=True,
-            #         reload_data=False)
 
 def hide_StatusMsg():
     statusMsgSection.empty()
-    
-def hide_ErrorMsg():
-    errorMsgSection.empty()
     
 def show_Retry():
     with retrySection:
@@ -286,29 +185,24 @@ def hide_Retry():
     retrySection.empty()
 
 def reset_Form():
-    st.session_state['pricing_status'] = ''
-    st.session_state['pricing_message'] = ''
-    st.session_state['pricing_error_message'] = ''
-
+    st.session_state['patch_status'] = ''
+    st.session_state['patch_message'] = ''
 
 with pageSection:
-    st.title('Crop Price Computation')
+    st.title('Patch Payment Voucher Remarks')
     statusMsg = st.empty()
     
-    if st.session_state['pricing_status'] == '':
+    if st.session_state['patch_status'] == '':
         show_MainPage()
         hide_StatusMsg()
-        hide_ErrorMsg()
         hide_Retry()
-    elif st.session_state['pricing_status'] == 'Succeeded':
+    elif st.session_state['patch_status'] == 'Succeeded':
         hide_MainPage()
         show_StatusMsg()
-        hide_ErrorMsg()
-        hide_Retry()
-    elif st.session_state['pricing_status'] == 'Failed':
+        show_Retry()
+    elif st.session_state['patch_status'] == 'Failed':
         hide_MainPage()
         show_StatusMsg()
-        show_ErrorMsg()
         show_Retry()
             
         
