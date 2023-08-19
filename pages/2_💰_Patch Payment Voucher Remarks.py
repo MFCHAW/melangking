@@ -141,9 +141,9 @@ def show_MainPage():
     with placeholder.container():
         if st.session_state['patch_status'] == '':
 
-            year = st.number_input('Year: ', 2023)
+            year = st.number_input('Payment Year: ', 2023)
             
-            month = st.number_input('Month: ', 8)
+            month = st.number_input('Payment Month: ', 8)
 
             st.markdown('#')
 
