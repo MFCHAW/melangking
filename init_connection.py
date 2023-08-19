@@ -7,7 +7,7 @@ def qconnection():
     return pymssql.connect(
         "server"
         + st.secrets["server"]
-        + "port"
+        + ";port"
         + st.secrets["port"]
         + ";database="
         + st.secrets["database"]
