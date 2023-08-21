@@ -57,6 +57,7 @@ def login(userName: str, password: str) -> bool:
         return False
     args = (userName, password, 0)
     result = run_query('FPS_CheckUser', args)
+    st.write(result)
     if result > 0:
         st.session_state['UserKey'] = getUserKey(userName, password)
         return True
