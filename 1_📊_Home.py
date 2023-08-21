@@ -107,9 +107,9 @@ def show_login_page():
     with loginSection:
         if st.session_state['loggedIn'] == False:
             userName = st.text_input(
-                label='User ID', value='fpsadmin', placeholder='Enter your user name')
+                label='User ID', value='', placeholder='Enter your user name')
             password = st.text_input(
-                label='Password', value='fpspass', placeholder='Enter password', type='password')
+                label='Password', value='', placeholder='Enter password', type='password')
             st.button('Login', on_click=LoggedIn_Clicked,
                       args=(userName, password))
 
