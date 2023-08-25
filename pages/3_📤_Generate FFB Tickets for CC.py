@@ -199,7 +199,7 @@ with pageSection:
     elif st.session_state['genTicket_status'] == 'Succeeded':
         hide_MainPage()
         show_StatusMsg()
-        show_Retry()
+        hide_Retry()
     elif st.session_state['genTicket_status'] == 'Failed':
         hide_MainPage()
         show_StatusMsg()
